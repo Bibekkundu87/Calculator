@@ -3,347 +3,775 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Code Generator</title>
+    <title>Inbondz Scientific Calculator</title>
+    <!-- Fonts for LCD and labels -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
     
-    <!-- Tailwind CSS for modern styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- QRCode.js Library -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    
-    <!-- Phosphor Icons for UI elements -->
-    <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
     <style>
-        /* Custom styles to smooth out transitions */
-        .tab-content {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
+        :root {
+            /* INBONDZ Modern Dark Theme */
+            --body-color: #1e2126; /* Deep dark charcoal body */
+            --screen-area: #000000;
+            --screen-bg: #c9d6cc; /* Slightly brighter LCD for contrast */
+            --screen-text: #111111;
+            
+            /* Button Colors */
+            --btn-dark: #2d3238; /* Standard function keys */
+            --btn-light: #3a4048; /* Top row control keys */
+            --btn-num: #e0e0e0; /* Number keys (Light for contrast) */
+            --btn-orange: #ff6b00; /* AC button (Vibrant Orange) */
+            --btn-del: #ff4d4d; /* DEL button (Soft Red) */
+            
+            /* Text Colors on Buttons */
+            --text-on-dark: #ffffff;
+            --text-on-light: #222222;
+            
+            /* Label Colors - High Visibility */
+            --lbl-shift: #ffcc00; /* Bright Neon Yellow/Gold */
+            --lbl-alpha: #ff3366; /* Vibrant Pink/Red */
+            
+            /* D-Pad */
+            --dpad-color: #353b45;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #121212; /* Dark web page background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: 'Roboto', sans-serif;
+        }
+
+        .calculator {
+            background-color: var(--body-color);
+            width: 100%;
+            max-width: 380px;
+            border-radius: 30px;
+            padding: 25px 20px 35px 20px;
+            box-shadow: 
+                0 0 0 1px rgba(255,255,255,0.05),
+                0 30px 60px rgba(0,0,0,0.8),
+                inset 0 1px 1px rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+            position: relative;
+        }
+
+        /* Branding */
+        .brand-area {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding: 0 10px;
+            margin-bottom: 5px;
+        }
+        .logo {
+            font-weight: 900;
+            font-size: 1.4rem;
+            color: #fff;
+            letter-spacing: 2px;
+            font-style: italic;
+            text-transform: uppercase;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        }
+        .model {
+            font-weight: 700;
+            font-size: 0.8rem;
+            color: #888;
+        }
+
+        /* Display Area */
+        .screen-container {
+            background-color: var(--screen-area);
+            padding: 10px;
+            border-radius: 15px;
+            margin-bottom: 5px;
+            border: 2px solid #333;
+        }
+
+        .screen {
+            background-color: var(--screen-bg);
+            height: 90px;
+            width: 100%;
+            border-radius: 6px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.1);
+            font-family: 'Share Tech Mono', monospace;
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            border: 1px solid #999;
+        }
+
+        /* Status Indicators (S, A, M, STO, etc) */
+        .indicators {
+            display: flex;
+            gap: 10px;
+            height: 14px;
+            font-size: 11px;
+        }
+        .ind {
+            color: #333;
+            padding: 0 2px;
+            opacity: 0.15;
+            font-weight: bold;
+        }
+        .ind.active {
+            opacity: 1;
+            background-color: #222;
+            color: #fff;
+            border-radius: 2px;
+        }
+
+        .calc-expression {
+            font-size: 1.2rem;
+            color: var(--screen-text);
+            white-space: nowrap;
+            overflow: hidden;
+            text-align: left;
+            margin-top: 5px;
+            letter-spacing: 0.5px;
+        }
+
+        .calc-result {
+            font-size: 2rem;
+            color: var(--screen-text);
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            font-weight: bold;
+        }
+
+        /* Keypad Layout */
+        .keypad {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Top Function Area */
+        .top-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 5px;
+            margin-bottom: 10px;
         }
         
-        .tab-content.active {
-            display: block;
+        /* The D-PAD */
+        .d-pad {
+            width: 75px;
+            height: 65px;
+            background: radial-gradient(circle at 30% 30%, #4a515e, var(--dpad-color));
+            border-radius: 50%;
+            position: relative;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.1);
+            cursor: pointer;
+            border: 1px solid rgba(0,0,0,0.3);
+        }
+        .d-pad::after {
+            content: "REPLAY";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #aaa;
+            font-size: 8px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        /* Visual cues for dpad directions */
+        .d-up, .d-down { position: absolute; background: #222; }
+        .d-up { top: 6px; left: 34px; width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 1px 1px rgba(255,255,255,0.1); } 
+        .d-down { bottom: 6px; left: 34px; width: 7px; height: 7px; border-radius: 50%; box-shadow: 0 1px 1px rgba(255,255,255,0.1); }
+
+        /* General Button Styling */
+        .btn-row {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr); 
+            gap: 10px;
+            justify-items: center;
+        }
+        
+        .btn-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-end;
+            position: relative;
+            width: 100%;
         }
 
-        .tab-btn.active {
-            background-color: #2563eb; /* blue-600 */
-            color: white;
-            border-color: #2563eb;
+        button {
+            width: 100%;
+            height: 38px;
+            border: none;
+            border-radius: 6px;
+            font-family: 'Roboto', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-on-dark);
+            cursor: pointer;
+            box-shadow: 0 4px 0 rgba(0,0,0,0.4), 0 5px 5px rgba(0,0,0,0.2);
+            transition: all 0.1s;
+            background-color: var(--btn-dark);
+            border-top: 1px solid rgba(255,255,255,0.1);
         }
 
-        /* Hide scrollbar for tab navigation */
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
+        button:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.4);
         }
 
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(5px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* Small round buttons (Shift/Alpha/Mode/On) */
+        .btn-round {
+            width: 44px;
+            height: 28px;
+            border-radius: 14px;
+            background-color: var(--btn-light);
+            font-size: 11px;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.4);
+            color: #ccc;
         }
 
-        /* QR container styling to ensure image is centered */
-        #qrcode img, #qrcode canvas {
-            margin: auto;
-            border: 8px solid white;
+        /* Number Pad Specifics */
+        .num-pad {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 12px;
+            margin-top: 15px;
+        }
+        .num-pad button {
+            height: 45px;
+            font-size: 19px;
             border-radius: 8px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            color: var(--text-on-light);
+            background-color: var(--btn-num); /* Light grey buttons */
+            box-shadow: 0 4px 0 #999, 0 5px 5px rgba(0,0,0,0.2); /* Lighter shadow for light buttons */
         }
+        .num-pad button:active {
+            box-shadow: 0 1px 0 #999;
+        }
+        .num-pad .btn-del {
+            background-color: var(--btn-del);
+            color: white;
+            box-shadow: 0 4px 0 #cc0000;
+        }
+        .num-pad .btn-del:active { box-shadow: 0 1px 0 #cc0000; }
+
+        .num-pad .btn-ac {
+            background-color: var(--btn-orange);
+            color: white;
+            box-shadow: 0 4px 0 #cc5500;
+        }
+        .num-pad .btn-ac:active { box-shadow: 0 1px 0 #cc5500; }
+
+        /* Labels above buttons - IMPROVED VISIBILITY */
+        .label-shift {
+            color: var(--lbl-shift);
+            font-size: 10px;
+            position: absolute;
+            top: -14px;
+            left: 0;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        .label-alpha {
+            color: var(--lbl-alpha);
+            font-size: 10px;
+            position: absolute;
+            top: -14px;
+            right: 0;
+            font-weight: 700;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        
     </style>
 </head>
-<body class="bg-gradient-to-br from-slate-100 to-slate-200 min-h-screen font-sans text-slate-800 p-4 flex items-center justify-center">
+<body>
 
-    <main class="w-full max-w-lg bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100">
-        
-        <!-- Header -->
-        <header class="bg-slate-900 text-white p-6 text-center relative overflow-hidden">
-            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
-            <i class="ph ph-qr-code text-5xl mb-2 text-blue-400"></i>
-            <h1 class="text-2xl font-bold">QR Generator</h1>
-            <p class="text-slate-400 text-sm">Create QR codes for Links, WiFi, Contacts & more</p>
-        </header>
-
-        <!-- Tab Navigation (Scrollable) -->
-        <div class="border-b border-slate-200 bg-slate-50">
-            <div class="flex overflow-x-auto no-scrollbar py-2 px-1 gap-1">
-                <button onclick="switchTab('url')" id="tab-url" class="tab-btn active flex-none px-6 py-2 rounded-full font-medium text-sm text-slate-600 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
-                    <i class="ph ph-link text-lg"></i> URL
-                </button>
-                <button onclick="switchTab('contact')" id="tab-contact" class="tab-btn flex-none px-6 py-2 rounded-full font-medium text-sm text-slate-600 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
-                    <i class="ph ph-user text-lg"></i> Contact
-                </button>
-                <button onclick="switchTab('wifi')" id="tab-wifi" class="tab-btn flex-none px-6 py-2 rounded-full font-medium text-sm text-slate-600 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
-                    <i class="ph ph-wifi-high text-lg"></i> WiFi
-                </button>
-                <button onclick="switchTab('email')" id="tab-email" class="tab-btn flex-none px-6 py-2 rounded-full font-medium text-sm text-slate-600 hover:text-blue-600 transition-colors flex items-center justify-center gap-2 whitespace-nowrap">
-                    <i class="ph ph-envelope text-lg"></i> Email
-                </button>
+    <div class="calculator">
+        <!-- Branding -->
+        <div class="brand-area">
+            <span class="logo">INBONDZ</span>
+            <div style="text-align: right;">
+                <div class="model">FX-PRO 2.0</div>
+                <div style="font-size: 9px; color: #888; letter-spacing: 1px;">ADVANCED SYSTEM</div>
             </div>
         </div>
 
-        <div class="p-6">
+        <!-- Screen -->
+        <div class="screen-container">
+            <div class="screen">
+                <div class="indicators">
+                    <div id="ind-shift" class="ind">S</div>
+                    <div id="ind-alpha" class="ind">A</div>
+                    <div id="ind-mem" class="ind">M</div>
+                    <div id="ind-sto" class="ind">STO</div>
+                    <div id="ind-rcl" class="ind">RCL</div>
+                    <div class="ind active">D</div> <!-- Default Degree -->
+                    <div class="ind">Math</div>
+                </div>
+                <div id="display-expression" class="calc-expression"></div>
+                <div id="display-result" class="calc-result">0</div>
+            </div>
+        </div>
+
+        <!-- Top Control Row -->
+        <div class="top-row">
+            <div class="btn-wrapper" style="width: auto;">
+                <span class="label-shift" style="left: 5px; top: -16px;">SHIFT</span>
+                <button class="btn-round" onclick="toggleShift()">SHIFT</button>
+            </div>
+            <div class="btn-wrapper" style="width: auto;">
+                <span class="label-alpha" style="color: var(--lbl-alpha); right: 5px; top: -16px;">ALPHA</span>
+                <button class="btn-round" onclick="toggleAlpha()">ALPHA</button>
+            </div>
             
-            <!-- Error Message Container -->
-            <div id="error-msg" class="hidden mb-4 p-3 bg-red-50 text-red-600 text-sm rounded-lg border border-red-100 flex items-center gap-2">
-                <i class="ph ph-warning-circle"></i> <span>Please fill in all fields.</span>
+            <div class="d-pad" onclick="dpadPress()">
+                <div class="d-up"></div>
+                <div class="d-down"></div>
             </div>
 
-            <!-- URL Input Form -->
-            <div id="content-url" class="tab-content active space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Website URL</label>
-                    <div class="relative">
-                        <i class="ph ph-globe absolute left-3 top-3 text-slate-400 text-lg"></i>
-                        <input type="url" id="url-input" placeholder="https://example.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                </div>
+            <div class="btn-wrapper" style="width: auto;">
+                <span class="label-shift" style="left: 0;">MODE</span>
+                <button class="btn-round">MODE</button>
             </div>
-
-            <!-- Contact Input Form (vCard) -->
-            <div id="content-contact" class="tab-content space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">First Name</label>
-                        <input type="text" id="contact-first" placeholder="John" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Last Name</label>
-                        <input type="text" id="contact-last" placeholder="Doe" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Phone Number</label>
-                    <input type="tel" id="contact-phone" placeholder="+1 234 567 890" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email</label>
-                    <input type="email" id="contact-email" placeholder="john@example.com" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Company</label>
-                        <input type="text" id="contact-org" placeholder="Acme Inc" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Title</label>
-                        <input type="text" id="contact-title" placeholder="Manager" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                </div>
+            <div class="btn-wrapper" style="width: auto;">
+                <button class="btn-round" style="background-color: #333;">ON</button>
             </div>
-
-            <!-- Email Input Form -->
-            <div id="content-email" class="tab-content space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Email Address</label>
-                    <div class="relative">
-                        <i class="ph ph-envelope absolute left-3 top-3 text-slate-400 text-lg"></i>
-                        <input type="email" id="email-addr" placeholder="recipient@example.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Subject</label>
-                    <input type="text" id="email-subject" placeholder="Meeting Request" class="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Message Body</label>
-                    <textarea id="email-body" rows="3" placeholder="Hello..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"></textarea>
-                </div>
-            </div>
-
-            <!-- WiFi Input Form -->
-            <div id="content-wifi" class="tab-content space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Network Name (SSID)</label>
-                    <div class="relative">
-                        <i class="ph ph-wifi-high absolute left-3 top-3 text-slate-400 text-lg"></i>
-                        <input type="text" id="wifi-ssid" placeholder="MyHomeNetwork" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Security</label>
-                        <div class="relative">
-                            <i class="ph ph-shield-check absolute left-3 top-3 text-slate-400 text-lg"></i>
-                            <select id="wifi-type" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all appearance-none">
-                                <option value="WPA">WPA/WPA2</option>
-                                <option value="WEP">WEP</option>
-                                <option value="nopass">None</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Password</label>
-                        <div class="relative">
-                            <i class="ph ph-key absolute left-3 top-3 text-slate-400 text-lg"></i>
-                            <input type="text" id="wifi-pass" placeholder="Password123" class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all">
-                        </div>
-                    </div>
-                </div>
-                <p class="text-xs text-slate-400 italic">Scanning this code will prompt compatible devices to join the network automatically.</p>
-            </div>
-
-            <!-- Plain Text Form -->
-            <div id="content-text" class="tab-content space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Plain Text</label>
-                    <textarea id="text-input" rows="4" placeholder="Enter any text, email body, or message here..." class="w-full p-3 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"></textarea>
-                </div>
-            </div>
-
-            <!-- Generate Button -->
-            <button onclick="generateQR()" class="w-full mt-6 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 shadow-md hover:shadow-lg active:scale-95 transform transition-transform">
-                <i class="ph ph-lightning text-xl"></i> Generate QR Code
-            </button>
-
-            <!-- Result Area -->
-            <div id="result-area" class="hidden mt-8 text-center border-t border-slate-100 pt-6 animate-fade-in">
-                <div class="bg-slate-100 p-4 rounded-xl inline-block mb-4 shadow-inner">
-                    <div id="qrcode" class="flex justify-center"></div>
-                </div>
-                
-                <div class="flex flex-col gap-2 justify-center items-center">
-                    <button onclick="downloadQR()" class="text-slate-600 hover:text-blue-600 font-medium text-sm flex items-center gap-2 px-4 py-2 hover:bg-slate-50 rounded-full transition-colors">
-                        <i class="ph ph-download-simple text-lg"></i> Download PNG
-                    </button>
-                </div>
-            </div>
-
         </div>
-        
-        <!-- Footer Instructions -->
-        <div class="bg-slate-50 p-4 text-center border-t border-slate-200">
-            <p class="text-xs text-slate-400">
-                <strong>How to use:</strong> Select a type, enter your details, and click Generate. <br>Use your phone's camera app to scan.
-            </p>
+
+        <!-- Scientific Functions Grid -->
+        <div class="keypad">
+            <!-- Row 1 -->
+            <div class="btn-row">
+                <div class="btn-wrapper">
+                    <button onclick="handleInput('Abs(')">Abs</button>
+                </div>
+                <div class="btn-wrapper">
+                    <button onclick="handleInput('^3')">x³</button>
+                </div>
+                <div class="btn-wrapper">
+                    <button onclick="handleInput('^(-1)')">x⁻¹</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">x!</span>
+                    <button onclick="handleGeneric('log')">log◻</button>
+                </div>
+                 <div class="btn-wrapper">
+                    <button onclick="handleInput('/')">a/b</button>
+                </div>
+                <div class="btn-wrapper">
+                    <button onclick="handleGeneric('sqrt')">√◻</button>
+                </div>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="btn-row">
+                <div class="btn-wrapper">
+                    <span class="label-shift">³√◻</span>
+                    <button onclick="handleInput('^2')">x²</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">ⁿ√◻</span>
+                    <button onclick="handleInput('^')">xʸ</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">10ⁿ</span>
+                    <button onclick="handleGeneric('log10')">log</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">eⁿ</span>
+                    <button onclick="handleGeneric('ln')">ln</button>
+                </div>
+                 <div class="btn-wrapper">
+                    <span class="label-shift" style="left: -4px">FACT</span>
+                    <span class="label-alpha">A</span>
+                    <button onclick="handleInput('(-)')">(-)</button>
+                </div>
+                 <div class="btn-wrapper">
+                    <span class="label-alpha">B</span>
+                    <button onclick="handleInput('dms')">°' "</button>
+                </div>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="btn-row">
+                 <div class="btn-wrapper">
+                    <span class="label-alpha">C</span>
+                    <button onclick="handleInput('hyp')">hyp</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">sin⁻¹</span>
+                    <span class="label-alpha">D</span>
+                    <button onclick="handleTrig('sin')">sin</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">cos⁻¹</span>
+                    <span class="label-alpha">E</span>
+                    <button onclick="handleTrig('cos')">cos</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">tan⁻¹</span>
+                    <span class="label-alpha">F</span>
+                    <button onclick="handleTrig('tan')">tan</button>
+                </div>
+                 <div class="btn-wrapper">
+                    <span class="label-shift">STO</span>
+                    <button onclick="handleInput('RCL')">RCL</button>
+                </div>
+                 <div class="btn-wrapper">
+                    <span class="label-shift">←</span>
+                    <button onclick="handleInput('ENG')">ENG</button>
+                </div>
+            </div>
+
+             <!-- Row 4 -->
+            <div class="btn-row">
+                 <div class="btn-wrapper">
+                    <button onclick="handleInput('(')">(</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">%</span>
+                    <span class="label-alpha">X</span>
+                    <button onclick="handleInput(')')">)</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">,</span>
+                    <span class="label-alpha">Y</span>
+                    <button onclick="handleInput('StoD')">S⇔D</button>
+                </div>
+                <div class="btn-wrapper">
+                    <span class="label-shift">M-</span>
+                    <span class="label-alpha">M</span>
+                    <button onclick="handleMem('M+')">M+</button>
+                </div>
+            </div>
         </div>
-    </main>
+
+        <!-- Main Number Pad -->
+        <div class="num-pad">
+            <div class="btn-wrapper">
+                <span class="label-shift">CONST</span>
+                <button class="btn-num" onclick="handleInput('7')">7</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">CONV</span>
+                <button class="btn-num" onclick="handleInput('8')">8</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">CLR</span>
+                <button class="btn-num" onclick="handleInput('9')">9</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">INS</span>
+                <button class="btn-del" onclick="handleDel()">DEL</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">OFF</span>
+                <button class="btn-ac" onclick="handleAC()">AC</button>
+            </div>
+
+            <div class="btn-wrapper">
+                <span class="label-shift">MATRIX</span>
+                <button class="btn-num" onclick="handleInput('4')">4</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">VECTOR</span>
+                <button class="btn-num" onclick="handleInput('5')">5</button>
+            </div>
+            <div class="btn-wrapper">
+                <button class="btn-num" onclick="handleInput('6')">6</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">nPr</span>
+                <button class="btn-num" onclick="handleInput('*')">×</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">nCr</span>
+                <button class="btn-num" onclick="handleInput('/')">÷</button>
+            </div>
+
+            <div class="btn-wrapper">
+                <span class="label-shift">STAT</span>
+                <button class="btn-num" onclick="handleInput('1')">1</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">CMPLX</span>
+                <button class="btn-num" onclick="handleInput('2')">2</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">BASE</span>
+                <button class="btn-num" onclick="handleInput('3')">3</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">Pol</span>
+                <button class="btn-num" onclick="handleInput('+')">+</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">Rec</span>
+                <button class="btn-num" onclick="handleInput('-')">-</button>
+            </div>
+
+            <div class="btn-wrapper">
+                <span class="label-shift">Rnd</span>
+                <button class="btn-num" onclick="handleInput('0')">0</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">Ran#</span>
+                <button class="btn-num" onclick="handleInput('.')">.</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">π</span>
+                <span class="label-alpha">e</span>
+                <button class="btn-num" onclick="handleGeneric('x10x')">x10ˣ</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">DRG▸</span>
+                <button class="btn-num" onclick="handleInput('Ans')">Ans</button>
+            </div>
+            <div class="btn-wrapper">
+                <span class="label-shift">≈</span>
+                <button class="btn-num" onclick="calculate()">=</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // --- State Management ---
-        let currentMode = 'url';
-        let qrCodeObj = null; // Store the QRCode instance
+        // State
+        let expression = "";
+        let result = "";
+        let shiftActive = false;
+        let alphaActive = false;
+        let memory = 0;
+        let lastAnswer = 0;
+        
+        // DOM
+        const exprDisplay = document.getElementById('display-expression');
+        const resDisplay = document.getElementById('display-result');
+        const indShift = document.getElementById('ind-shift');
+        const indAlpha = document.getElementById('ind-alpha');
+        const indMem = document.getElementById('ind-mem');
 
-        // --- Tab Switching Logic ---
-        function switchTab(mode) {
-            currentMode = mode;
-            
-            // Hide all error messages
-            document.getElementById('error-msg').classList.add('hidden');
-            document.getElementById('result-area').classList.add('hidden');
+        function updateDisplay() {
+            // Replace internal js syntax with nice symbols for display
+            let disp = expression
+                .replaceAll('*', '×')
+                .replaceAll('/', '÷')
+                .replaceAll('Math.PI', 'π')
+                .replaceAll('Math.E', 'e')
+                .replaceAll('Math.sqrt(', '√(')
+                .replaceAll('Math.sin(', 'sin(')
+                .replaceAll('Math.cos(', 'cos(')
+                .replaceAll('Math.tan(', 'tan(')
+                .replaceAll('Math.asin(', 'sin⁻¹(')
+                .replaceAll('Math.acos(', 'cos⁻¹(')
+                .replaceAll('Math.atan(', 'tan⁻¹(')
+                .replaceAll('Math.log10(', 'log(')
+                .replaceAll('Math.log(', 'ln(')
+                .replaceAll('**', '^');
 
-            // Update Tab UI
-            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-            document.getElementById(`tab-${mode}`).classList.add('active');
+            exprDisplay.textContent = disp;
+            resDisplay.textContent = result || "0";
 
-            // Update Content UI
-            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
-            document.getElementById(`content-${mode}`).classList.add('active');
+            // Update Indicators
+            shiftActive ? indShift.classList.add('active') : indShift.classList.remove('active');
+            alphaActive ? indAlpha.classList.add('active') : indAlpha.classList.remove('active');
+            memory !== 0 ? indMem.classList.add('active') : indMem.classList.remove('active');
         }
 
-        // --- Generator Logic ---
-        function generateQR() {
-            const errorMsg = document.getElementById('error-msg');
-            const resultArea = document.getElementById('result-area');
-            const qrContainer = document.getElementById('qrcode');
-            
-            let qrText = '';
+        function toggleShift() {
+            shiftActive = !shiftActive;
+            alphaActive = false;
+            updateDisplay();
+        }
 
-            // 1. Gather Data based on Mode
-            if (currentMode === 'url') {
-                const url = document.getElementById('url-input').value.trim();
-                if (!url) return showError('Please enter a valid URL.');
-                qrText = url;
-            } 
-            else if (currentMode === 'contact') {
-                const fn = document.getElementById('contact-first').value.trim();
-                const ln = document.getElementById('contact-last').value.trim();
-                const phone = document.getElementById('contact-phone').value.trim();
-                const email = document.getElementById('contact-email').value.trim();
-                const org = document.getElementById('contact-org').value.trim();
-                const title = document.getElementById('contact-title').value.trim();
-                
-                if (!fn && !ln && !org) return showError('Please enter at least a name or company.');
+        function toggleAlpha() {
+            alphaActive = !alphaActive;
+            shiftActive = false;
+            updateDisplay();
+        }
 
-                // vCard 3.0 Format
-                qrText = `BEGIN:VCARD\nVERSION:3.0\nN:${ln};${fn};;;\nFN:${fn} ${ln}\nORG:${org}\nTITLE:${title}\nTEL;TYPE=CELL:${phone}\nEMAIL:${email}\nEND:VCARD`;
+        function handleInput(val) {
+            // Handle Shift variations for basic keys
+            if (shiftActive) {
+                if(val === ')') val = 'X'; // Simplification for X var
+                if(val === '(') val = '%'; 
+                if(val === 'Ans') val = 'DRG'; // Placeholder
+                if(val === '*') val = 'P'; // nPr
+                if(val === '/') val = 'C'; // nCr
+                shiftActive = false;
+            } else if (alphaActive) {
+                if(val === ')') val = 'X';
+                if(val === ',') val = 'Y';
+                if(val === 'M+') val = 'M';
+                alphaActive = false;
             }
-            else if (currentMode === 'email') {
-                const addr = document.getElementById('email-addr').value.trim();
-                const sub = document.getElementById('email-subject').value.trim();
-                const body = document.getElementById('email-body').value.trim();
-                
-                if (!addr) return showError('Email address is required.');
-                // mailto:addr?subject=...&body=...
-                qrText = `mailto:${addr}?subject=${encodeURIComponent(sub)}&body=${encodeURIComponent(body)}`;
+
+            if(result !== "" && result !== "0" && ['+', '-', '*', '/', '^'].includes(val)) {
+                // Continue calculation with answer
+                expression = "Ans" + val;
+                result = "";
+            } else if (result !== "") {
+                // Start new
+                expression = "";
+                result = "";
             }
-            else if (currentMode === 'wifi') {
-                const ssid = document.getElementById('wifi-ssid').value.trim();
-                const type = document.getElementById('wifi-type').value;
-                const pass = document.getElementById('wifi-pass').value.trim();
-                
-                if (!ssid) return showError('Network SSID is required.');
-                if (type !== 'nopass' && !pass) return showError('Password is required for secure networks.');
 
-                qrText = `WIFI:S:${ssid};T:${type};P:${pass};;`;
+            expression += val;
+            updateDisplay();
+        }
+
+        function handleDel() {
+            if(shiftActive) {
+                // INS logic (toggle insert mode - complex, skipping for basic sim)
+                shiftActive = false;
             } 
-
-            // 2. Clear previous errors and QR
-            errorMsg.classList.add('hidden');
-            qrContainer.innerHTML = ''; // Clear container
-
-            // 3. Generate new QR
-            setTimeout(() => {
-                qrCodeObj = new QRCode(qrContainer, {
-                    text: qrText,
-                    width: 200,
-                    height: 200,
-                    colorDark : "#000000",
-                    colorLight : "#ffffff",
-                    correctLevel : QRCode.CorrectLevel.H
-                });
-                
-                // Show result
-                resultArea.classList.remove('hidden');
-            }, 50);
+            expression = expression.slice(0, -1);
+            result = "";
+            updateDisplay();
         }
 
-        // --- Helper: Show Error ---
-        function showError(msg) {
-            const el = document.getElementById('error-msg');
-            el.querySelector('span').textContent = msg;
-            el.classList.remove('hidden');
+        function handleAC() {
+            if(shiftActive) {
+                // OFF logic
+                exprDisplay.textContent = "";
+                resDisplay.textContent = "";
+                expression = "";
+                result = "";
+                shiftActive = false;
+                // In a real app this would clear state, here we just clear screen visually
+                setTimeout(() => { 
+                    resDisplay.textContent = "INBONDZ"; 
+                    setTimeout(() => { resDisplay.textContent = "0"; }, 500);
+                }, 100);
+                return;
+            }
+            expression = "";
+            result = "";
+            shiftActive = false;
+            alphaActive = false;
+            updateDisplay();
         }
 
-        // --- Download Logic ---
-        function downloadQR() {
-            const qrContainer = document.getElementById('qrcode');
-            const img = qrContainer.querySelector('img');
+        // Generic wrapper for functions that might have shift alts
+        function handleGeneric(type) {
+            if(result !== "") { expression = ""; result = ""; }
 
-            if (img && img.src) {
-                const link = document.createElement('a');
-                link.href = img.src;
-                link.download = `qrcode-${currentMode}-${Date.now()}.png`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+            if(type === 'log') {
+                if(shiftActive) { expression += '10^('; shiftActive = false; }
+                else expression += 'Math.log10(';
+            }
+            else if(type === 'ln') {
+                if(shiftActive) { expression += 'Math.E^('; shiftActive = false; }
+                else expression += 'Math.log(';
+            }
+            else if(type === 'sqrt') {
+                expression += 'Math.sqrt(';
+            }
+            else if(type === 'log10') {
+                 if(shiftActive) { expression += '10^('; shiftActive = false; }
+                 else expression += 'Math.log10(';
+            }
+            else if(type === 'x10x') {
+                if(shiftActive) { expression += 'Math.PI'; shiftActive = false; }
+                else if(alphaActive) { expression += 'Math.E'; alphaActive = false; }
+                else expression += '*10^(';
+            }
+            updateDisplay();
+        }
+
+        function handleTrig(func) {
+            if(result !== "") { expression = ""; result = ""; }
+            
+            if(shiftActive) {
+                expression += `Math.a${func}(`; // asin, acos, atan
+                shiftActive = false;
+            } else if (alphaActive) {
+                // Alpha map for trig keys D, E, F
+                if(func === 'sin') expression += 'D';
+                if(func === 'cos') expression += 'E';
+                if(func === 'tan') expression += 'F';
+                alphaActive = false;
             } else {
-                const canvas = qrContainer.querySelector('canvas');
-                if(canvas) {
-                    const link = document.createElement('a');
-                    link.href = canvas.toDataURL("image/png");
-                    link.download = `qrcode-${currentMode}-${Date.now()}.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                } else {
-                    alert("QR Code not ready yet. Please try again.");
-                }
+                expression += `Math.${func}(`;
             }
+            updateDisplay();
         }
+
+        function handleMem(op) {
+            if(shiftActive && op === 'M+') {
+                // M-
+                let val = parseFloat(result || lastAnswer); // Simplified
+                memory -= val;
+            } else if (alphaActive && op === 'M+') {
+                expression += "M";
+            } else {
+                // M+
+                 // In real calc, this adds CURRENT result to memory
+                 // We will just show indicator for now
+                 memory += 10; // Dummy
+            }
+            shiftActive = false; alphaActive = false;
+            updateDisplay();
+        }
+
+        function calculate() {
+            try {
+                let evalString = expression;
+                
+                // Pre-process
+                evalString = evalString.replaceAll('×', '*')
+                                       .replaceAll('÷', '/')
+                                       .replaceAll('^', '**')
+                                       .replaceAll('Ans', lastAnswer);
+
+                // Handle percentage (simple version)
+                // 50% -> 50/100
+                // evalString = evalString.replace(/(\d+)%/g, "($1/100)");
+
+                // Handle factorial (simple integer check)
+                // evalString = evalString.replace(/(\d+)!/g, "factorial($1)"); // need factorial func
+
+                // Safe(ish) Eval
+                // Note: We use Function here to run math.
+                // For a real app, write a parser (Shunting Yard).
+                let res = new Function('return ' + evalString)();
+                
+                // Format
+                if(res.toString().includes('.')) {
+                    res = parseFloat(res.toFixed(8));
+                }
+                
+                result = res;
+                lastAnswer = res;
+            } catch (e) {
+                result = "Syntax ERROR";
+            }
+            updateDisplay();
+        }
+        
+        // Placeholder for dpad
+        function dpadPress() {
+            // In a full emulator, this moves the cursor
+            // Here we just flash the screen
+            const s = document.querySelector('.screen');
+            s.style.opacity = '0.8';
+            setTimeout(() => s.style.opacity = '1', 100);
+        }
+
     </script>
 </body>
 </html>
